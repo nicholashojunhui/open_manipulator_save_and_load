@@ -32,15 +32,15 @@ catkin_python_setup()
 # Declare catkin specific configuration to be passed to dependent projects
 ################################################################################
 catkin_package(
-  INCLUDE_DIRS include
-  CATKIN_DEPENDS rospy std_msgs open_manipulator_msgs
+  #INCLUDE_DIRS include
+  #CATKIN_DEPENDS rospy std_msgs open_manipulator_msgs
 )
 
 ################################################################################
 # Build
 ################################################################################
 include_directories(
-  include
+  #include
   ${catkin_INCLUDE_DIRS}
 )
 
