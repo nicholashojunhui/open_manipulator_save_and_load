@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-############################################################################
-######### This code is modified to account for Gripper Opening bug #########
-############################################################################
-
 import rospy, roslaunch
 import sys, select, os
 from sensor_msgs.msg import JointState
@@ -41,12 +37,12 @@ class JointDataSave():
         self.open_manipulator_joint_states_sub_ = rospy.Subscriber('/joint_states', JointState, self.jointStatesCallback)
         self.set_actuator_state = rospy.ServiceProxy('/set_actuator_state', SetActuatorState)
         self.set_joint_position = rospy.ServiceProxy('/goal_joint_space_path', SetJointPosition)
-        #self.set_gripper_position = rospy.ServiceProxy('/goal_tool_control', SetJointPosition)
+        self.set_gripper_position = rospy.ServiceProxy('/goal_tool_control', SetJointPosition)
 
 	#Original
         # self.jointStates = [0.0, 0.0, 0.0, 0.0, 0.0]
 	#Revised (include gripper_sub now)
-        self.jointStates = [0.0, 0.0, 0.0, 0.0]
+        self.jointStates = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         self.state = 0
         self.count = 0
@@ -96,11 +92,11 @@ class JointDataSave():
                 #    self.jointStates[2],self.jointStates[3],self.jointStates[4] )
 
 		#Revised                    
-                data = str(self.jointStates[0]) + "," + str(self.jointStates[1]) + "," + str(self.jointStates[2]) + "," + \
-                    str(self.jointStates[3]) + "\n"
+                data = str(self.jointStates[2]) + "," + str(self.jointStates[3]) + "," + str(self.jointStates[4]) + "," + \
+                    str(self.jointStates[5])+ "," + str(self.jointStates[0]) + "\n"
                 self.f.write(data)
-                rospy.loginfo('%d _ saving J0:%.3f, J1:%.3f, J2:%.3f, J3:%.3f', self.count, self.jointStates[0],self.jointStates[1], \
-                    self.jointStates[2],self.jointStates[3])
+                rospy.loginfo('%d _ saving J0:%.3f, J1:%.3f, J2:%.3f, J3:%.3f, Gripper:%.3f', self.count, self.jointStates[2],self.jointStates[3], \
+                    self.jointStates[4],self.jointStates[5],self.jointStates[0] )
                 self.count = self.count + 1     
                 #rospy.sleep(0.01) 
 
@@ -133,20 +129,20 @@ class JointDataSave():
                     except (rospy.ServiceException, e):
                         print ("Service call failed: %s"%e)
                     resp = self.set_actuator_state(False)
-                    rospy.loginfo(' ActuatorState disable command %d ', resp.is_planned )                         
-                    continue  
+                    rospy.loginfo(' ActuatorState disable command %d ', resp.is_planned )                           
+                    continue
 
                 if self.count == 0 :
                     position_path_time = 2 
-                    #gripper_path_time = 1 
+                    gripper_path_time = 1 
                     operating_time = 2
                 else :
                     position_path_time = 0.5
-                    #gripper_path_time = 0.5
-                    operating_time = 0.5
+                    gripper_path_time = 0.5
+                    operating_time = 0.2 
 
-                rospy.loginfo('%d _ loading J0:%.3f, J1:%.3f, J2:%.3f, J3:%.3f', self.count,\
-                            inputfile[self.count][0], inputfile[self.count][1],inputfile[self.count][2], inputfile[self.count][3])  
+                rospy.loginfo('%d _ loading J0:%.3f, J1:%.3f, J2:%.3f, J3:%.3f, Gripper:%.3f', self.count,\
+                            inputfile[self.count][0], inputfile[self.count][1],inputfile[self.count][2], inputfile[self.count][3], inputfile[self.count][4])  
                 try: 
                     joint_position = JointPosition()
                     joint_position.joint_name = ['joint1','joint2','joint3','joint4']                
@@ -159,7 +155,7 @@ class JointDataSave():
                 except (rospy.ServiceException, e):
                     print ("Service call failed: %s"%e)
                 
-                '''try: 
+                try: 
                     gripper_position = JointPosition()
                     gripper_position.joint_name = ['gripper']
                     gripper_position.position =  [inputfile[self.count][4]]
@@ -168,7 +164,7 @@ class JointDataSave():
                     #print 'resp1 {}'.format(resp1.is_planned) 
                     #rospy.sleep(0.2) 
                 except (rospy.ServiceException, e):
-                    print ("Service call failed: %s"%e)'''
+                    print ("Service call failed: %s"%e)
 
                 self.count = self.count + 15
                 #self.count = self.count + 8 # movement speed slow
@@ -192,14 +188,14 @@ class JointDataSave():
         return key            
 
     def jointStatesCallback(self, msg):
-        #self.jointStates[0] = msg.position[0]
-        #self.jointStates[1] = msg.position[1]
-        self.jointStates[0] = msg.position[2]
-        self.jointStates[1] = msg.position[3]
-        self.jointStates[2] = msg.position[4]
+        self.jointStates[0] = msg.position[0]
+        self.jointStates[1] = msg.position[1]
+        self.jointStates[2] = msg.position[2]
+        self.jointStates[3] = msg.position[3]
+        self.jointStates[4] = msg.position[4]
 
 	#added
-        self.jointStates[3] = msg.position[5]
+        self.jointStates[5] = msg.position[5]
         #rospy.loginfo('joint %.2f, %.2f,%.2f,%.2f,', self.jointStates[0], self.jointStates[1], self.jointStates[2], self.jointStates[3])
 
     def execute(self):
